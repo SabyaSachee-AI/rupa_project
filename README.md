@@ -60,3 +60,15 @@ cd rupa-ai
 
         streamlit run main.py 
 
+```
+📝 Author
+Sabyasachee Das
+AI Enthusiast
+
+Facebook: 
+Linked in:
+
+📜 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+Special thanks to the open-source community for the tools and inspiration.
