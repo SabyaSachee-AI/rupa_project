@@ -123,6 +123,7 @@ ignore = [
 # Lazy imports are intentional: keeps sentry-sdk optional at runtime.
 "app/observability.py" = ["PLC0415"]
 "app/runtime_keys.py" = ["PLC0415"]
+"app/secrets_loader.py" = ["S110"]
 # Chat page renders distinct user-friendly errors for each RupaError subtype.
 "app/ui/pages/chat.py" = ["PLR0911"]
 "app/ui/pages/login.py" = ["PLR0912", "PLR0915"]

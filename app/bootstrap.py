@@ -14,6 +14,7 @@ from app.db import init_db
 from app.logging_setup import configure_logging, get_logger
 from app.observability import init_sentry
 from app.runtime_keys import ensure_api_keys_initialized
+from app.secrets_loader import apply_streamlit_secrets_to_env
 
 _BOOTSTRAP_FLAG = "_rupa_bootstrap_done"
 
@@ -25,6 +26,7 @@ def bootstrap() -> None:
         return
 
     load_dotenv(override=False)
+    apply_streamlit_secrets_to_env()
     configure_logging()
     logger = get_logger(__name__)
     logger.info("app.bootstrap_start")
