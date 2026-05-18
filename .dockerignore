@@ -1,0 +1,54 @@
+# =============================================================================
+# Files NOT to copy into the Docker build context
+# =============================================================================
+
+# VCS
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local runtime data (must come from volumes, not the image)
+data/
+logs/
+*.db
+*.sqlite
+*.sqlite3
+*.mp3
+*.wav
+
+# Local env / secrets
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Tests / docs in image are optional; keep alembic for migrations
+tests/
+docs/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

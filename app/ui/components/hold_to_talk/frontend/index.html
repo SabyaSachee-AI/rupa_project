@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/streamlit-component-lib.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: transparent;
+      overflow: hidden;
+    }
+    .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 4px;
+    }
+    #micBtn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #ec4899 0%, #db2777 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(219, 39, 119, 0.45);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #micBtn:hover:not(:disabled) {
+      transform: scale(1.04);
+      box-shadow: 0 6px 18px rgba(219, 39, 119, 0.55);
+    }
+    #micBtn:active:not(:disabled),
+    #micBtn.recording {
+      transform: scale(0.96);
+      background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    #micBtn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      background: #94a3b8;
+      box-shadow: none;
+    }
+    #micBtn svg {
+      width: 26px;
+      height: 26px;
+      fill: currentColor;
+      pointer-events: none;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+      50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.08); }
+    }
+    .hint {
+      position: absolute;
+      bottom: -1.1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.62rem;
+      color: #64748b;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <button type="button" id="micBtn" title="Hold to talk" aria-label="Hold to record voice">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </button>
+    <span class="hint" id="hint">Hold</span>
+  </div>
+  <script>
+    const btn = document.getElementById("micBtn");
+    const hint = document.getElementById("hint");
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let chunks = [];
+    let recording = false;
+    let disabled = false;
+    let recordId = 0;
+
+    function setFrameHeight() {
+      Streamlit.setFrameHeight(72);
+    }
+
+    function cleanupStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((t) => t.stop());
+        mediaStream = null;
+      }
+    }
+
+    function setRecordingUI(active) {
+      recording = active;
+      btn.classList.toggle("recording", active);
+      hint.textContent = active ? "Release" : "Hold";
+    }
+
+    async function startRecording() {
+      if (disabled || recording) return;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm";
+        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mime });
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+        mediaRecorder.onstop = async () => {
+          setRecordingUI(false);
+          cleanupStream();
+          if (!chunks.length) return;
+          const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+          if (blob.size < 800) return;
+          const buffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          const step = 0x8000;
+          for (let i = 0; i < bytes.length; i += step) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
+          }
+          recordId += 1;
+          Streamlit.setComponentValue({
+            id: recordId,
+            audio_base64: btoa(binary),
+            sample_rate: 48000,
+            sample_width: 2,
+            format: "webm",
+          });
+        };
+        mediaRecorder.start();
+        setRecordingUI(true);
+      } catch (err) {
+        setRecordingUI(false);
+        cleanupStream();
+        console.error("Microphone access failed:", err);
+      }
+    }
+
+    function stopRecording() {
+      if (!recording || !mediaRecorder) return;
+      if (mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    }
+
+    function applyDisabled(value) {
+      disabled = !!value;
+      btn.disabled = disabled;
+      hint.textContent = disabled ? "No key" : "Hold";
+    }
+
+    btn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      startRecording();
+    });
+    btn.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      stopRecording();
+    });
+    btn.addEventListener("mouseleave", () => {
+      if (recording) stopRecording();
+    });
+    btn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      startRecording();
+    }, { passive: false });
+    btn.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      stopRecording();
+    }, { passive: false });
+    btn.addEventListener("touchcancel", () => stopRecording());
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    function onRender(event) {
+      const args = (event && event.detail && event.detail.args) || {};
+      applyDisabled(args.disabled);
+      setFrameHeight();
+    }
+
+    Streamlit.events.addEventListener(Streamlit.events.RENDER, onRender);
+    Streamlit.setComponentReady();
+    setFrameHeight();
+  </script>
+</body>
+</html>

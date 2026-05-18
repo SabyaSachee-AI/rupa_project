@@ -1,0 +1,55 @@
+# =============================================================================
+# Local dev stack. Run with:  docker compose up --build
+# =============================================================================
+# - app:      Streamlit application
+# - postgres: optional Postgres (commented out by default; SQLite works fine
+#             for local dev). Uncomment when testing the Postgres path.
+# =============================================================================
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rupa-ai:local
+    container_name: rupa-app
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      RUPA_ENV: development
+      LOG_FORMAT: console
+    volumes:
+      - rupa_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Optional Postgres - uncomment and set DATABASE_URL=postgresql+psycopg2://...
+  # ---------------------------------------------------------------------------
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: rupa-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: rupa
+  #     POSTGRES_PASSWORD: rupa_local
+  #     POSTGRES_DB: rupa
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - rupa_pg_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U rupa"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  rupa_data:
+  # rupa_pg_data:
