@@ -1,4 +1,6 @@
-# Streamlit Cloud / pip — generated from pyproject.toml dependencies
+# Streamlit Cloud / pip — install this repo so ``from app.*`` imports resolve
+-e .
+
 streamlit>=1.40,<2.0
 streamlit-mic-recorder>=0.0.8,<1.0
 streamlit-authenticator>=0.3.3,<0.5
